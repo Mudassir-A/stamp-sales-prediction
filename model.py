@@ -22,6 +22,7 @@ class TimeSeriesSalesPrediction:
         import os
 
         os.makedirs("output_predictions", exist_ok=True)
+        os.makedirs("output_predictions/csv", exist_ok=True)
 
         # Load data
         self.df = pd.read_csv(data_path)
@@ -225,12 +226,15 @@ class TimeSeriesSalesPrediction:
             marker="o",
         )
 
-        # Future yearly predictions
+        # Future yearly predictions - Modified code
         future_years = list(predictions["future_yearly"].keys())
-        future_year_preds = [
-            pred[list(pred.keys())[0]][0]
-            for pred in predictions["future_yearly"].values()
-        ]
+        future_year_preds = []
+        for year in future_years:
+            pred_dict = predictions["future_yearly"][year]
+            first_method = list(pred_dict.keys())[0]  # Get first prediction method
+            pred_values = pred_dict[first_method]
+            future_year_preds.append(pred_values.mean())  # Use mean of predictions
+
         future_year_index = [pd.to_datetime(f"{year}-01-01") for year in future_years]
         plt.plot(
             future_year_index,
@@ -252,12 +256,15 @@ class TimeSeriesSalesPrediction:
         plt.xlabel("Month")
         plt.ylabel("Average Sales")
 
-        # 4. Future Monthly Predictions
+        # 4. Future Monthly Predictions - Modified code
         plt.subplot(2, 2, 4)
-        future_month_preds = [
-            pred[list(pred.keys())[0]][0]
-            for pred in predictions["future_monthly"].values()
-        ]
+        future_month_preds = []
+        for month in range(1, 13):
+            pred_dict = predictions["future_monthly"][month]
+            first_method = list(pred_dict.keys())[0]
+            pred_values = pred_dict[first_method]
+            future_month_preds.append(pred_values.mean())  # Use mean of predictions
+
         plt.bar(range(1, 13), future_month_preds)
         plt.title("Predicted Sales for Each Month")
         plt.xlabel("Month")
@@ -267,6 +274,50 @@ class TimeSeriesSalesPrediction:
         plt.savefig("output_predictions/comprehensive_sales_predictions.png")
         plt.close()
 
+    def save_predictions_to_csv(self, predictions):
+        """
+        Save prediction results to CSV files for web visualization
+        """
+        # Save overall predictions
+        overall_df = pd.DataFrame()
+        # Get the length of predictions from the first method's forecast
+        first_method = list(predictions['overall'].keys())[0]
+        pred_length = len(predictions['overall'][first_method])
+        
+        pred_index = pd.date_range(
+            start=self.daily_sales.index[-1],
+            periods=pred_length + 1,
+            freq='D'
+        )[1:]
+        
+        for method, forecast in predictions['overall'].items():
+            overall_df[f'{method}'] = forecast
+        overall_df.index = pred_index
+        overall_df.to_csv('output_predictions/csv/overall_predictions.csv')
+
+        # Save yearly predictions
+        yearly_df = pd.DataFrame()
+        for year, pred_dict in predictions['future_yearly'].items():
+            for method, forecast in pred_dict.items():
+                yearly_df[f'{year}_{method}'] = forecast
+        yearly_df.to_csv('output_predictions/csv/yearly_predictions.csv')
+
+        # Save monthly predictions
+        monthly_df = pd.DataFrame()
+        for month, pred_dict in predictions['future_monthly'].items():
+            for method, forecast in pred_dict.items():
+                monthly_df[f'Month_{month}_{method}'] = forecast
+        monthly_df.to_csv('output_predictions/csv/monthly_predictions.csv')
+
+        # Save historical data for context
+        historical_df = pd.DataFrame({
+            'historical_sales': self.daily_sales,
+            'weekly_avg': self.weekly_sales.reindex(self.daily_sales.index, method='ffill'),
+            'monthly_avg': self.monthly_sales.reindex(self.daily_sales.index, method='ffill'),
+            'yearly_avg': self.yearly_sales.reindex(self.daily_sales.index, method='ffill')
+        })
+        historical_df.to_csv('output_predictions/csv/historical_data.csv')
+
 
 # Main execution
 def main():
@@ -274,6 +325,7 @@ def main():
     predictor = TimeSeriesSalesPrediction("stamp_sales_data.csv")
     predictions = predictor.comprehensive_prediction()
     predictor.visualize_predictions(predictions)
+    predictor.save_predictions_to_csv(predictions)
 
 
 if __name__ == "__main__":
