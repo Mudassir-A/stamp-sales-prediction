@@ -2,3 +2,7 @@ matplotlib
 pandas
 numpy
 holidays
+scikit-learn
+scipy
+seaborn
+statsmodels
