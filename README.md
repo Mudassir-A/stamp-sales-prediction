@@ -115,4 +115,4 @@ Feel free to submit issues and enhancement requests! -->
 
 ## 📄 License
 
-[MIT License](https://github.com/Mudassir-A/stamp-sales-prediction/blob/master/model.py)
+[MIT License](https://github.com/Mudassir-A/stamp-sales-prediction?tab=MIT-1-ov-file#)
