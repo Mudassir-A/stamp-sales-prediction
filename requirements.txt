@@ -9,3 +9,4 @@ statsmodels
 streamlit
 google-generativeai
 python-dotenv
+nltk
